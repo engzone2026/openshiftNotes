@@ -1,0 +1,483 @@
+Scheduling in OpenShift
+
+In this lab, you will learn how the Kubernetes scheduler decides where to place Pods and how to influence those decisions. You will work with four scheduling mechanisms:
+
+Node Selectors — The simplest way to constrain Pods to specific nodes
+Node Affinity — A more expressive version of node selectors with required and preferred rules
+Taints and Tolerations — Allow nodes to repel Pods unless they explicitly opt in
+Pod Affinity and Anti-Affinity — Place Pods relative to other Pods, not just nodes
+Understanding these tools is essential for production clusters where you need to control workload placement for performance, isolation, compliance, or hardware requirements.
+
+admin[ec2-user@ip-172-31-29-7 ~]$ oc get nodes
+NAME                                        STATUS   ROLES                  AGE   VERSION
+ip-10-0-126-9.us-west-1.compute.internal    Ready    worker                 2d    v1.34.2
+ip-10-0-40-214.us-west-1.compute.internal   Ready    control-plane,master   2d    v1.34.2
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+[ec2-user@ip-172-31-29-7 ~]$ oc describe nodes | grep -A1 "Taints:"
+Taints:             <none>
+Unschedulable:      false
+--
+Taints:             node-role.kubernetes.io/master:NoSchedule
+Unschedulable:      false
+
+The master node has a node-role.kubernetes.io/master:NoSchedule taint, which means regular workloads cannot run on it. Only the worker node is available for your Pods. This is the default in OpenShift — control-plane nodes are reserved for cluster infrastructure
+
+Project Setup
+
+[ec2-user@ip-172-31-29-7 ~]$ oc new-project scheduling-lab
+Now using project "scheduling-lab" on server "https://api.student8.labfun.org:6443".
+
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    oc new-app rails-postgresql-example
+
+to build a new example application in Ruby. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=registry.k8s.io/e2e-test-images/agnhost:2.43 -- /agnhost serve-hostname
+
+[ec2-user@ip-172-31-29-7 ~]$ oc adm policy add-scc-to-user anyuid -z default -n scheduling-lab
+clusterrole.rbac.authorization.k8s.io/system:openshift:scc:anyuid added: "default"
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+[ec2-user@ip-172-31-29-7 ~]$ oc adm policy add-scc-to-user anyuid -z default -n scheduling-lab
+clusterrole.rbac.authorization.k8s.io/system:openshift:scc:anyuid added: "default"
+[ec2-user@ip-172-31-29-7 ~]$ 
+[ec2-user@ip-172-31-29-7 ~]$ 
+[ec2-user@ip-172-31-29-7 ~]$ WORKER_NODE=$(oc get nodes -l node-role.kubernetes.io/worker -o jsonpath='{.items[0].metadata.name}')
+echo $WORKER_NODE
+ip-10-0-126-9.us-west-1.compute.internal
+[ec2-user@ip-172-31-29-7 ~]$ oc label nodes $WORKER_NODE disktype=ssd
+node/ip-10-0-126-9.us-west-1.compute.internal labeled
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+ec2-user@ip-172-31-29-7 ~]$ oc adm policy add-scc-to-user anyuid -z default -n scheduling-lab
+clusterrole.rbac.authorization.k8s.io/system:openshift:scc:anyuid added: "default"
+[ec2-user@ip-172-31-29-7 ~]$ 
+[ec2-user@ip-172-31-29-7 ~]$ 
+[ec2-user@ip-172-31-29-7 ~]$ WORKER_NODE=$(oc get nodes -l node-role.kubernetes.io/worker -o jsonpath='{.items[0].metadata.name}')
+echo $WORKER_NODE
+ip-10-0-126-9.us-west-1.compute.internal
+[ec2-user@ip-172-31-29-7 ~]$ oc label nodes $WORKER_NODE disktype=ssd
+node/ip-10-0-126-9.us-west-1.compute.internal labeled
+[ec2-user@ip-172-31-29-7 ~]$ oc label nodes $WORKER_NODE disktype=ssd
+node/ip-10-0-126-9.us-west-1.compute.internal not labeled
+[ec2-user@ip-172-31-29-7 ~]$ oc get nodes -l disktype=ssd
+NAME                                       STATUS   ROLES    AGE   VERSION
+ip-10-0-126-9.us-west-1.compute.internal   Ready    worker   2d    v1.34.2
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Deploy a Pod with nodeSelector
+Deploy a Pod with nodeSelector
+Create a file called ssd-pod.yaml:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ssd-pod
+  labels:
+    app: ssd-test
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.27
+    ports:
+    - containerPort: 80
+  nodeSelector:
+    disktype: ssd
+The nodeSelector tells the scheduler: only place this Pod on nodes that have the label disktype=ssd.
+
+oc apply -f resource/ssd-pod.yaml
+
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/ssd-pod.yaml
+pod/ssd-pod created
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+[ec2-user@ip-172-31-29-7 ~]$ oc get pod ssd-pod -o wide
+NAME      READY   STATUS    RESTARTS   AGE   IP            NODE                                       NOMINATED NODE   READINESS GATES
+ssd-pod   1/1     Running   0          31s   10.129.0.60   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Clean up
+oc delete pod ssd-pod
+oc label nodes $WORKER_NODE disktype-
+The trailing - after disktype removes the label.
+
+[ec2-user@ip-172-31-29-7 ~]$ oc delete pod ssd-pod
+oc label nodes $WORKER_NODE disktype-
+pod "ssd-pod" deleted from scheduling-lab namespace
+node/ip-10-0-126-9.us-west-1.compute.internal unlabeled
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+
+Part 2: Node Affinity
+
+Node affinity is a more expressive version of nodeSelector. It supports two rule types:
+
+requiredDuringSchedulingIgnoredDuringExecution — Hard requirement. The Pod will not schedule unless a matching node exists. It stays Pending indefinitely until one becomes available.
+
+preferredDuringSchedulingIgnoredDuringExecution — Soft preference. The scheduler tries to find a matching node but will schedule the Pod elsewhere if no match exists.
+The "IgnoredDuringExecution" part means that if a node's labels change after a Pod is already running, the Pod is not evicted.
+
+Create a file called affinity-required.yaml:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: affinity-required
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: affinity-required
+  template:
+    metadata:
+      labels:
+        app: affinity-required
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: env
+                operator: In
+                values:
+                - production
+      containers:
+      - name: nginx
+        image: nginx:1.27
+        ports:
+        - containerPort: 80
+This Deployment requires nodes with the label env=production. The operator: In means the node's env label must have a value that is in the list [production]. Other operators include NotIn, Exists, DoesNotExist, Gt, and Lt.
+oc apply -f resource/affinity-required.yaml
+
+
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/affinity-required.yaml
+deployment.apps/affinity-required created
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -l app=affinity-required
+NAME                                 READY   STATUS    RESTARTS   AGE
+affinity-required-85dd58687d-6l8n9   0/1     Pending   0          10s
+affinity-required-85dd58687d-97jwt   0/1     Pending   0          10s
+[ec2-user@ip-172-31-29-7 ~]$ oc describe pod -l app=affinity-required | grep -A3 "Events:"
+Events:
+  Type     Reason            Age   From               Message
+  ----     ------            ----  ----               -------
+  Warning  FailedScheduling  51s   default-scheduler  0/2 nodes are available: 1 node(s) didn't match Pod's node affinity/selector, 1 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+--
+Events:
+  Type     Reason            Age   From               Message
+  ----     ------            ----  ----               -------
+  Warning  FailedScheduling  51s   default-scheduler  0/2 nodes are available: 1 node(s) didn't match Pod's node affinity/selector, 1 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Fix the scheduling issue
+
+[ec2-user@ip-172-31-29-7 ~]$ oc label nodes $WORKER_NODE env=production
+node/ip-10-0-126-9.us-west-1.compute.internal labeled
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -l app=affinity-required -o wide
+NAME                                 READY   STATUS    RESTARTS   AGE    IP            NODE                                       NOMINATED NODE   READINESS GATES
+affinity-required-85dd58687d-6l8n9   1/1     Running   0          2m4s   10.129.0.62   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+affinity-required-85dd58687d-97jwt   1/1     Running   0          2m4s   10.129.0.61   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Preferred node affinity
+
+Preferred node affinity
+Create a file called affinity-preferred.yaml:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: affinity-preferred
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: affinity-preferred
+  template:
+    metadata:
+      labels:
+        app: affinity-preferred
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 80
+            preference:
+              matchExpressions:
+              - key: gpu
+                operator: In
+                values:
+                - "true"
+      containers:
+      - name: nginx
+        image: nginx:1.27
+        ports:
+        - containerPort: 80
+This Deployment prefers nodes with gpu=true (weight 80 out of 100), but no node in the cluster has that label.
+oc apply -f resource/affinity-preferred.yaml
+
+
+[ec2-user@ip-172-31-29-7 ~]$ oc label nodes $WORKER_NODE env=production
+node/ip-10-0-126-9.us-west-1.compute.internal labeled
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -l app=affinity-required -o wide
+NAME                                 READY   STATUS    RESTARTS   AGE    IP            NODE                                       NOMINATED NODE   READINESS GATES
+affinity-required-85dd58687d-6l8n9   1/1     Running   0          2m4s   10.129.0.62   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+affinity-required-85dd58687d-97jwt   1/1     Running   0          2m4s   10.129.0.61   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/affinity-preferred.yaml
+deployment.apps/affinity-preferred created
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Both Pods are Running — even though no node has the gpu=true label. This is the key difference between required and preferred: preferred rules are best-effort, not mandatory. The scheduler places the Pods on the best available node.
+
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/affinity-preferred.yaml
+deployment.apps/affinity-preferred created
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -l app=affinity-preferred -o wide
+NAME                                  READY   STATUS    RESTARTS   AGE   IP            NODE                                       NOMINATED NODE   READINESS GATES
+affinity-preferred-54b899659d-6q8mv   1/1     Running   0          27s   10.129.0.64   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+affinity-preferred-54b899659d-s786j   1/1     Running   0          27s   10.129.0.63   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -l app=affinity-preferred -o wide
+NAME                                  READY   STATUS    RESTARTS   AGE   IP            NODE                                       NOMINATED NODE   READINESS GATES
+affinity-preferred-54b899659d-6q8mv   1/1     Running   0          34s   10.129.0.64   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+affinity-preferred-54b899659d-s786j   1/1     Running   0          34s   10.129.0.63   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Clean up
+oc delete deployment affinity-required affinity-preferred
+oc label nodes $WORKER_NODE env-
+
+[ec2-user@ip-172-31-29-7 ~]$ oc delete deployment affinity-required affinity-preferred
+oc label nodes $WORKER_NODE env-
+deployment.apps "affinity-required" deleted from scheduling-lab namespace
+deployment.apps "affinity-preferred" deleted from scheduling-lab namespace
+node/ip-10-0-126-9.us-west-1.compute.internal unlabeled
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Part 3: Taints and Tolerations
+Taints and tolerations work together to control scheduling from the node's perspective. A taint on a node says "do not schedule here unless you tolerate me." A toleration on a Pod says "I can handle that taint."
+
+This is the opposite of affinity: affinity attracts Pods to nodes, while taints repel Pods from nodes.
+
+Each taint has three components:
+
+key — A label-like identifier (e.g., dedicated)
+value — An optional value (e.g., special)
+effect — What happens to Pods that do not tolerate the taint:
+NoSchedule — New Pods will not be scheduled (existing Pods remain)
+PreferNoSchedule — The scheduler tries to avoid the node but may still place Pods there
+NoExecute — New Pods are rejected AND existing Pods without a matching toleration are evicted
+Your cluster already demonstrates taints — the master node has node-role.kubernetes.io/master:NoSchedule, which is why your workloads only run on the worker.
+
+Taint the worker node
+
+Deploy without a toleration
+Create a file called no-toleration.yaml:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: no-toleration
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: no-toleration
+  template:
+    metadata:
+      labels:
+        app: no-toleration
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.27
+        ports:
+        - containerPort: 80
+
+oc apply -f resource/no-toleration.yaml
+
+
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/no-toleration.yaml
+deployment.apps/no-toleration created
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -l app=no-toleration
+NAME                             READY   STATUS    RESTARTS   AGE
+no-toleration-64c84d75cd-plm6d   0/1     Pending   0          9s
+no-toleration-64c84d75cd-s6lt7   0/1     Pending   0          9s
+[ec2-user@ip-172-31-29-7 ~]$ oc describe pod -l app=no-toleration | grep -A2 "Warning"
+  Warning  FailedScheduling  17s   default-scheduler  0/2 nodes are available: 2 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+
+
+--
+  Warning  FailedScheduling  17s   default-scheduler  0/2 nodes are available: 2 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f with-toleration.yaml
+error: the path "with-toleration.yaml" does not exist
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -o wide
+NAME                             READY   STATUS    RESTARTS   AGE    IP       NODE     NOMINATED NODE   READINESS GATES
+no-toleration-64c84d75cd-plm6d   0/1     Pending   0          105s   <none>   <none>   <none>           <none>
+no-toleration-64c84d75cd-s6lt7   0/1     Pending   0          105s   <none>   <none>   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -o wide
+NAME                             READY   STATUS    RESTARTS   AGE    IP       NODE     NOMINATED NODE   READINESS GATES
+no-toleration-64c84d75cd-plm6d   0/1     Pending   0          115s   <none>   <none>   <none>           <none>
+no-toleration-64c84d75cd-s6lt7   0/1     Pending   0          115s   <none>   <none>   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+
+oc apply -f resource/with-toleration.yaml
+
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/no-toleration.yaml
+deployment.apps/no-toleration created
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -l app=no-toleration
+NAME                             READY   STATUS    RESTARTS   AGE
+no-toleration-64c84d75cd-plm6d   0/1     Pending   0          9s
+no-toleration-64c84d75cd-s6lt7   0/1     Pending   0          9s
+[ec2-user@ip-172-31-29-7 ~]$ oc describe pod -l app=no-toleration | grep -A2 "Warning"
+  Warning  FailedScheduling  17s   default-scheduler  0/2 nodes are available: 2 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+
+
+--
+  Warning  FailedScheduling  17s   default-scheduler  0/2 nodes are available: 2 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f with-toleration.yaml
+error: the path "with-toleration.yaml" does not exist
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -o wide
+NAME                             READY   STATUS    RESTARTS   AGE    IP       NODE     NOMINATED NODE   READINESS GATES
+no-toleration-64c84d75cd-plm6d   0/1     Pending   0          105s   <none>   <none>   <none>           <none>
+no-toleration-64c84d75cd-s6lt7   0/1     Pending   0          105s   <none>   <none>   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -o wide
+NAME                             READY   STATUS    RESTARTS   AGE    IP       NODE     NOMINATED NODE   READINESS GATES
+no-toleration-64c84d75cd-plm6d   0/1     Pending   0          115s   <none>   <none>   <none>           <none>
+no-toleration-64c84d75cd-s6lt7   0/1     Pending   0          115s   <none>   <none>   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/no-toleration.yaml
+deployment.apps/no-toleration unchanged
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -l app=no-toleration
+NAME                             READY   STATUS    RESTARTS   AGE
+no-toleration-64c84d75cd-plm6d   0/1     Pending   0          4m40s
+no-toleration-64c84d75cd-s6lt7   0/1     Pending   0          4m40s
+[ec2-user@ip-172-31-29-7 ~]$ oc describe pod -l app=no-toleration | grep -A2 "Warning"
+  Warning  FailedScheduling  4m49s  default-scheduler  0/2 nodes are available: 2 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+
+
+--
+  Warning  FailedScheduling  4m49s  default-scheduler  0/2 nodes are available: 2 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/with-toleration.yaml
+deployment.apps/with-toleration created
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f with-toleration.yaml
+error: the path "with-toleration.yaml" does not exist
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE     IP            NODE                                       NOMINATED NODE   READINESS GATES
+no-toleration-64c84d75cd-plm6d     0/1     Pending   0          5m45s   <none>        <none>                                     <none>           <none>
+no-toleration-64c84d75cd-s6lt7     0/1     Pending   0          5m45s   <none>        <none>                                     <none>           <none>
+with-toleration-6bb8b9fd94-852pw   1/1     Running   0          19s     10.129.0.65   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+with-toleration-6bb8b9fd94-k7gnl   1/1     Running   0          19s     10.129.0.66   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Clean up
+Remove the custom taint from the worker and delete the Deployments:
+
+oc adm taint nodes $WORKER_NODE dedicated-
+oc delete deployment no-toleration with-toleration
+The trailing - after dedicated removes the taint. Verify:
+
+oc describe node $WORKER_NODE | grep Taints
+Taints:             <none>
+[ec2-user@ip-172-31-29-7 ~]$ oc adm taint nodes $WORKER_NODE dedicated-
+oc delete deployment no-toleration with-toleration
+node/ip-10-0-126-9.us-west-1.compute.internal untainted
+deployment.apps "no-toleration" deleted from scheduling-lab namespace
+deployment.apps "with-toleration" deleted from scheduling-lab namespace
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+
+Part 4: Pod Affinity and Anti-Affinity
+
+Pod affinity and anti-affinity let you place Pods relative to other Pods rather than nodes. This is useful when:
+
+Pod affinity — You want related services on the same node for lower latency (e.g., a web server and its cache)
+Pod anti-affinity — You want replicas spread across nodes for high availability (e.g., database replicas on separate nodes)
+Like node affinity, pod affinity supports both required and preferred variants.
+
+Pod affinity: co-locate related services
+
+oc apply -f resource/pod-affinity.yaml
+
+oc apply -f resource/pod-anti-affinity.yaml
+
+[ec2-user@ip-172-31-29-7 ~]$ oc adm taint nodes $WORKER_NODE dedicated-
+oc delete deployment no-toleration with-toleration
+node/ip-10-0-126-9.us-west-1.compute.internal untainted
+deployment.apps "no-toleration" deleted from scheduling-lab namespace
+deployment.apps "with-toleration" deleted from scheduling-lab namespace
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/pod-affinity.yaml
+deployment.apps/cache created
+deployment.apps/web created
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP            NODE                                       NOMINATED NODE   READINESS GATES
+cache-bc8cb8ddf-5whvj   1/1     Running   0          8s    10.129.0.69   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+web-69cd8c6b78-6swwh    1/1     Running   0          8s    10.129.0.70   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+web-69cd8c6b78-rwpp8    1/1     Running   0          8s    10.129.0.71   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/pod-anti-affinity.yaml
+deployment.apps/no-colocate created
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods -l app=no-colocate -o wide
+NAME                          READY   STATUS    RESTARTS   AGE   IP            NODE                                       NOMINATED NODE   READINESS GATES
+no-colocate-79f7cfdcb-h2qxp   0/1     Pending   0          7s    <none>        <none>                                     <none>           <none>
+no-colocate-79f7cfdcb-lh2pl   1/1     Running   0          7s    10.129.0.72   ip-10-0-126-9.us-west-1.compute.internal   <none>           <none>
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+One Pod is Running and one is Pending. The first Pod scheduled on the worker, but the second cannot go there (anti-affinity) and the master is tainted, so it has nowhere to go.
+
+This demonstrates an important production lesson: required anti-affinity with more replicas than available nodes will leave Pods unschedulable. In production clusters with many nodes this is not a problem, but it is something to plan for.
+
+Pod anti-affinity: prefer separation
+The safe alternative is preferred anti-affinity, which tries to spread Pods but allows co-location when necessary:
+
+Create a file called pod-anti-affinity-preferred.yaml:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prefer-spread
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: prefer-spread
+  template:
+    metadata:
+      labels:
+        app: prefer-spread
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - prefer-spread
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: nginx
+        image: nginx:1.27
+        ports:
+        - containerPort: 80
+Apply it:
+
+oc apply -f pod-anti-affinity-preferred.yaml
+Check the Pods:
+
+oc get pods -l app=prefer-spread -o wide
+Both Pods are Running on the same node. The scheduler tried to separate them (weight 100 is the maximum preference), but since there is only one schedulable node, it placed them together anyway. In a cluster with multiple nodes, the scheduler would spread them across different nodes.
+
+This is the recommended approach for most production workloads — preferred anti-affinity provides the best possible spreading without risking unschedulable Pods.
+
+Clean up
+oc delete deployment cache web no-colocate prefer-spread
+Cleanup
+Remove all custom labels from nodes and delete the project:
+
+oc label nodes $WORKER_NODE disktype- env- 2>/dev/null
+oc delete project scheduling-lab
+
+

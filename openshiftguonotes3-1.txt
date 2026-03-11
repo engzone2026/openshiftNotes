@@ -1,0 +1,13 @@
+{"server":true,"database":false}[ec2-user@ip-172-31-29-7 auth]$ oc new-project k8s-resources
+Now using project "k8s-resources" on server "https://api.student8.labfun.org:6443".
+
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    oc new-app rails-postgresql-example
+
+to build a new example application in Ruby. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=registry.k8s.io/e2e-test-images/agnhost:2.43 -- /agnhost serve-hostname
+
+[ec2-user@ip-172-31-29-7 auth]$ 
+

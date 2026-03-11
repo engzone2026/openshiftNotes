@@ -1,0 +1,132 @@
+https://github.com/jruels/openshift-administration
+
+command
+Resource	Details
+AWS Account	An IAM user with AdministratorAccess has been created
+DNS Domain	A Route 53 hosted zone for your base domain already exists
+Bastion Host	An EC2 instance you will connect to from VS Code
+Pull Secret	Already included in the configuration file — no Red Hat account needed
+
+
+Host bastion
+    HostName <BASTION_IP>
+    User ec2-user
+    IdentityFile /path/to/keys/lab.pem
+
+[ec2-user@ip-172-31-29-7 ~]$ echo $HOME
+/home/ec2-user
+
+ssh-keygen -t ed25519 -N '' -f ${HOME}/.ssh/ocp4-aws-key
+
+apiVersion: v1
+baseDomain: labfun.org
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform:
+    aws:
+      type: m6i.xlarge
+  replicas: 1
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  platform:
+    aws:
+      type: m6i.2xlarge
+  replicas: 1
+metadata:
+  name: student8
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 10.0.0.0/16
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  aws:
+    region: us-west-1
+publish: External
+pullSecret: '{"auths":{"cloud.openshift.com":{"auth":"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfYjliMThkNzU2YmRlNDJiMTg0ODY1MTljMjk4YWM1NmU6RTlSTzQ3MVI4VDk0OVY4MllaOEJCVjUwTElJTlZQT0JQTlhTRjBUWFlLQk9QMTlaR0Y5VDhaMlJQQUtUNlNRSQ==","email":"jason@innovationinsoftware.com"},"quay.io":{"auth":"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfYjliMThkNzU2YmRlNDJiMTg0ODY1MTljMjk4YWM1NmU6RTlSTzQ3MVI4VDk0OVY4MllaOEJCVjUwTElJTlZQT0JQTlhTRjBUWFlLQk9QMTlaR0Y5VDhaMlJQQUtUNlNRSQ==","email":"jason@innovationinsoftware.com"},"registry.connect.redhat.com":{"auth":"fHVoYy1wb29sLWE1YjFlMmIyLTZjM2MtNGIyYy1hMGZlLWE5ZGJlYTI2YmEyNzpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSTRNMk5oWVdSbE5qRTVaamswWmpBeU9EVXpaRGd6TURrek4yWTJOREl3TlNKOS5PSHdQWGVXQUpCLXVMRld2N0M4U1dKLXJnYkRhVHM5UlZ1SlFtdjNmNXM0OUJFWUZ4bU9zYTNDM1ZvVWFkN3B4QmxwaTJZcnhlUHFrcVY0cEJ2aGE4bVMtN2RGei11bEZ3dGY0Q01UVWxjY1JjSlQ5QXZRT25iTENsc05PVlFBSDRlMHIyRHdSd3RlR0lFX01EUkRoVzhMaHFvOEIwdVB5b3pPNlRSYXQxeUpCNFVDSlNTOWdOaDMyaUhKdnRab3YyNGJrQ256YmhQZWJMRGhCdDY5c1dzSkVtaWNjRTJBYlVpUEhlUGZkUUFhOEMxUWF1Y3FXNWc0Q0JMSzdVS3lUR2RTZTZIM3laNjIwT1MwQ3B1MXdYajdvWmgxNHRJRGNlQmF6ckRHTl9DNTVJREl4X3NqclZqR212a3VNOEk5eEFOYTZuaGZmZEVaRW9OYW5NOXZGaURFOGhkZjdpY0wyNi1rRU5oRHo4M0puTWZsd19sZnJZZGpNSDNiRXF3Rm41eVo5Z0Y1Z3lMVmJtVm9YSzVENTBCNEl6T1VITmpoOExyemxyaEYtZG42S1RTcDVUZ0drX3NIUlg5ZGlpN1BRY2h0c2ZpQ1ZoUjA5dG5PcDU3aUc4M3NVYzNQSklNcW00OWJyRjEzQTNFZGIyaF9SOU1yallSM01lNmlJb181UHU3WFNsbDg5eHdzdC12eUp3ejhTNXVHcVJfbkxsSE9nOW11LU9VX0VKU056V0pCSy1oNHk0T0dfaXhrTU5iQUpjN1BreGxvZHBsWVR0QnUyTnF2ekZfWC1STkR3cmctbTBlWVNHS1NsWmJ5dUpiUnhycFhnYlRybHQzRFEwSzdxS25pRzZLbDJpelZEQXhZclZycjg3SWljRzJuaks5LTZweEk5b1VkRlNzWQ==","email":"jason@innovationinsoftware.com"},"registry.redhat.io":{"auth":"fHVoYy1wb29sLWE1YjFlMmIyLTZjM2MtNGIyYy1hMGZlLWE5ZGJlYTI2YmEyNzpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSTRNMk5oWVdSbE5qRTVaamswWmpBeU9EVXpaRGd6TURrek4yWTJOREl3TlNKOS5PSHdQWGVXQUpCLXVMRld2N0M4U1dKLXJnYkRhVHM5UlZ1SlFtdjNmNXM0OUJFWUZ4bU9zYTNDM1ZvVWFkN3B4QmxwaTJZcnhlUHFrcVY0cEJ2aGE4bVMtN2RGei11bEZ3dGY0Q01UVWxjY1JjSlQ5QXZRT25iTENsc05PVlFBSDRlMHIyRHdSd3RlR0lFX01EUkRoVzhMaHFvOEIwdVB5b3pPNlRSYXQxeUpCNFVDSlNTOWdOaDMyaUhKdnRab3YyNGJrQ256YmhQZWJMRGhCdDY5c1dzSkVtaWNjRTJBYlVpUEhlUGZkUUFhOEMxUWF1Y3FXNWc0Q0JMSzdVS3lUR2RTZTZIM3laNjIwT1MwQ3B1MXdYajdvWmgxNHRJRGNlQmF6ckRHTl9DNTVJREl4X3NqclZqR212a3VNOEk5eEFOYTZuaGZmZEVaRW9OYW5NOXZGaURFOGhkZjdpY0wyNi1rRU5oRHo4M0puTWZsd19sZnJZZGpNSDNiRXF3Rm41eVo5Z0Y1Z3lMVmJtVm9YSzVENTBCNEl6T1VITmpoOExyemxyaEYtZG42S1RTcDVUZ0drX3NIUlg5ZGlpN1BRY2h0c2ZpQ1ZoUjA5dG5PcDU3aUc0M3NVYzNQSklNcW00OWJyRjEzQTNFZGIyaF9SOU1yallSM01lNmlJb181UHU3WFNsbDg5eHdzdC12eUp3ejhTNXVHcVJfbkxsSE9nOW11LU9VX0VKU056V0pCSy1oNHk0T0dfaXhrTU5iQUpjN1BreGxvZHBsWVR0QnUyTnF2ekZfWC1STkR3cmctbTBlWVNHS1NsWmJ5dUpiUnhycFhnYlRybHQzRFEwSzdxS25pRzZLbDJpelZEQXhZclZycjg3SWljRzJuaks5LTZweEk5b1VkRlNzWQ==","email":"jason@innovationinsoftware.com"}}}'
+sshKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBWL7AFcbDDV0ZR+THtveVNx609rxdMxEqF7es9ewO44 ec2-user@ip-172-31-29-7.us-west-1.compute.internal'
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+[ec2-user@ip-172-31-29-7 .ssh]$ cat authorized_keys 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDAuFWJZBCaRCGgiOsQhBzeyZZ/7o1yVkWYWnygjQ8tgJhP9TPw5unR5u75VVh99zxNwEpB6tzJ/Db4dNT+mpuR4LcCdo3lIrfMyhBs+ixl8wCnc1/ClSMk1V4rl27FyoKMiBc2VAePNExUhvXHtRgqALXeXvxGo9UaVAYFVgC0B5OaqFt4c3vLcO1PwBUtk53+bt0dPmB2yRdEIc1DBAubiK2M4nk/cFN+eyxHhidl/cC+LtFzjVldk2hlqo6E84mkNSZFAhTMYg5Mn32JVXukvF1Ls0e2Jd4XPqay3iv24FiFvUKS3h+8HmqvcAcCemU3ayldgx87SR0BlJsOWtdX ocp-bastion-key
+[ec2-user@ip-172-31-29-7 .ssh]$ 
+
+ssh-keygen -t ed25519 -N '' -f ${HOME}/.ssh/ocp4-aws-key
+
+-t ed25519 — Use the Ed25519 algorithm.
+-N '' — Set an empty passphrase (acceptable for a lab; in production you would use a passphrase or a key agent).
+-f — Write the key pair to a specific file path.
+View the public key — you will need this value in a later step. In the VS Code file explorer, navigate to /home/ec2-user/.ssh/ and open ocp4-aws-key.pub. You can also open it from the terminal:
+
+[ec2-user@ip-172-31-29-7 home]$ aws sts get-caller-identity
+{
+    "UserId": "AIDAYXTUFRNVIKZOT4PXN",
+    "Account": "600465312618",
+    "Arn": "arn:aws:iam::600465312618:user/iis-admin"
+}
+
+[ec2-user@ip-172-31-29-7 home]$ openshift-install version
+openshift-install 4.21.3
+built from commit e973ac44d6883540dc4ac32b3a02ad05565feefa
+release image quay.io/openshift-release-dev/ocp-release@sha256:994bbf87fec04efb0e89ffbc54b2d37590d48e6a804c78cf2cf62dd9bc156793
+release architecture amd64
+
+[ec2-user@ip-172-31-29-7 home]$ oc version --client
+Client Version: 4.21.3
+Kustomize Version: v5.7.1
+[ec2-user@ip-172-31-29-7 home]$ rm -rf ~/ocp-install && mkdir -p ~/ocp-install
+
+wget -q -O ~/ocp-install/install-config.yaml https://raw.githubusercontent.com/jruels/openshift-administration/main/labs/openshift-install-updated/install-config.yaml
+
+ls ~/ocp-install/install-config.yaml
+
+sed -i "s/studentN/YOUR_STUDENT_NUMBER/" ~/ocp-install/install-config.yaml
+
+[ec2-user@ip-172-31-29-7 ~]$ sed -i "s/studentN/student8/" ~/ocp-install/install-config.yaml
+
+sed -i "s|YOURSSHKEY|$(cat ~/.ssh/ocp4-aws-key.pub)|" ~/ocp-install/install-config.yaml
+
+sed -i "s|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN6wVcmk2POhLDq5uzuPYEHN1Gey5L14gQqWhdD93CUN ec2-user@ip-172-31-29-7.us-west-1.compute.internal|$(cat ~/.ssh/ocp4-aws-key.pub)|" ~/ocp-install/install-config.yaml
+
+code ~/ocp-install/install-config.yaml
+
+cp ~/ocp-install/install-config.yaml ~/install-config-backup.yaml
+
+---Customize the Ingress Load Balancer
+
+
+***  openshift-install create manifests --dir=$HOME/ocp-install
+
+code ~/ocp-install/manifests/cluster-ingress-02-config.yml
+
+openshift-install create cluster --dir=$HOME/ocp-install --log-level=info
+
+ https://api.student8.labfun.org:6443
+
+export KUBECONFIG=$HOME/ocp-install/auth/kubeconfig
+
+echo 'export KUBECONFIG=$HOME/ocp-install/auth/kubeconfig' >> ~/.bashrc
+source ~/.bashrc
+
+[ec2-user@ip-172-31-29-7 ~]$ oc get nodes
+NAME                                        STATUS   ROLES                  AGE   VERSION
+ip-10-0-126-9.us-west-1.compute.internal    Ready    worker                 35m   v1.34.2
+ip-10-0-40-214.us-west-1.compute.internal   Ready    control-plane,master   42m   v1.34.2
+https://console-openshift-console.apps.<cluster>.<domain>
+[ec2-user@ip-172-31-29-7 ~]$ https://console-openshift-console.apps.student8.labfun.org
+
+Username: kubeadmin
+Password: KRR88-rJ3WW-3s5DP-2Gmzo
+
+[ec2-user@ip-172-31-29-7 auth]$ ls
+kubeadmin-password  kubeconfig
+[ec2-user@ip-172-31-29-7 auth]$ cat kubeadmin-password
+KRR88-rJ3WW-3s5DP-2Gmzo[ec2-user@ip-172-31-29-7 auth]$ 

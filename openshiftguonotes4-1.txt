@@ -1,0 +1,467 @@
+Kubernetes Resources
+
+oc new-project k8s-resources
+[ec2-user@ip-172-31-29-7 ~]$ oc new-project k8s-resources
+Already on project "k8s-resources" on server "https://api.student8.labfun.org:6443".
+
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    oc new-app rails-postgresql-example
+
+to build a new example application in Ruby. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=registry.k8s.io/e2e-test-images/agnhost:2.43 -- /agnhost serve-hostname
+
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+[ec2-user@ip-172-31-29-7 ~]$ oc adm policy add-scc-to-user anyuid -z default -n k8s-resources
+clusterrole.rbac.authorization.k8s.io/system:openshift:scc:anyuid added: "default"
+[ec2-user@ip-172-31-29-7 ~]$ 
+Create a file called pod.yaml with the following contents:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: nginx
+    tier: web
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.25
+    ports:
+    - containerPort: 80
+
+oc apply -f resource/pod.yaml
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/pod.yaml
+pod/nginx-pod created
+[ec2-user@ip-172-31-29-7 ~]$ 
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods
+NAME        READY   STATUS    RESTARTS   AGE
+nginx-pod   1/1     Running   0          48s
+[ec2-user@ip-172-31-29-7 ~]$ oc describe pod nginx-pod
+Name:             nginx-pod
+Namespace:        k8s-resources
+Priority:         0
+Service Account:  default
+Node:             ip-10-0-126-9.us-west-1.compute.internal/10.0.126.9
+Start Time:       Wed, 11 Mar 2026 14:53:59 +0000
+Labels:           app=nginx
+                  tier=web
+Annotations:      k8s.ovn.org/pod-networks:
+                    {"default":{"ip_addresses":["10.129.0.42/23"],"mac_address":"0a:58:0a:81:00:2a","gateway_ips":["10.129.0.1"],"routes":[{"dest":"10.128.0.0...
+                  k8s.v1.cni.cncf.io/network-status:
+                    [{
+                        "name": "ovn-kubernetes",
+                        "interface": "eth0",
+                        "ips": [
+                            "10.129.0.42"
+                        ],
+                        "mac": "0a:58:0a:81:00:2a",
+                        "default": true,
+                        "dns": {}
+                    }]
+                  openshift.io/scc: anyuid
+                  security.openshift.io/validated-scc-subject-type: serviceaccount
+Status:           Running
+IP:               10.129.0.42
+IPs:
+  IP:  10.129.0.42
+Containers:
+  nginx:
+    Container ID:   cri-o://cfe29d37111692fed9e4a798a125a3acf0bd90f33a04910cb2961db929460643
+    Image:          nginx:1.25
+    Image ID:       docker.io/library/nginx@sha256:a484819eb60211f5299034ac80f6a681b06f89e65866ce91f356ed7c72af059c
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Wed, 11 Mar 2026 14:54:04 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-gccfv (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
+  PodScheduled                True 
+Volumes:
+  kube-api-access-gccfv:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+    ConfigMapName:           openshift-service-ca.crt
+    Optional:                false
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason          Age   From               Message
+  ----    ------          ----  ----               -------
+  Normal  Scheduled       64s   default-scheduler  Successfully assigned k8s-resources/nginx-pod to ip-10-0-126-9.us-west-1.compute.internal
+  Normal  AddedInterface  64s   multus             Add eth0 [10.129.0.42/23] from ovn-kubernetes
+  Normal  Pulling         64s   kubelet            Pulling image "nginx:1.25"
+  Normal  Pulled          60s   kubelet            Successfully pulled image "nginx:1.25" in 3.832s (3.832s including waiting). Image size: 191805953 bytes.
+  Normal  Created         60s   kubelet            Created container: nginx
+  Normal  Started         60s   kubelet            Started container nginx
+[ec2-user@ip-172-31-29-7 ~]$ 
+Access the Pod
+[ec2-user@ip-172-31-29-7 ~]$ oc exec nginx-pod -- curl -s http://localhost
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+[ec2-user@ip-172-31-29-7 ~]$ 
+Delete the Pod
+
+oc delete pod nginx-pod
+
+[ec2-user@ip-172-31-29-7 ~]$ oc delete pod nginx-pod
+pod "nginx-pod" deleted from k8s-resources namespace
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods
+No resources found in k8s-resources namespace.
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Create a ReplicaSet
+Create a file called replicaset.yaml with the following contents:
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-replicaset
+  labels:
+    app: nginx
+    tier: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+      tier: web
+  template:
+    metadata:
+      labels:
+        app: nginx
+        tier: web
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+
+
+oc apply -f resource/replicaset.yaml
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/replicaset.yaml
+replicaset.apps/nginx-replicaset created
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+oc get pods
+[ec2-user@ip-172-31-29-7 ~]$ oc delete pod nginx-pod
+pod "nginx-pod" deleted from k8s-resources namespace
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods
+No resources found in k8s-resources namespace.
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/replicaset.yaml
+replicaset.apps/nginx-replicaset created
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-replicaset-dxsdd   1/1     Running   0          39s
+nginx-replicaset-p5sbw   1/1     Running   0          39s
+nginx-replicaset-xbz7j   1/1     Running   0          39s
+[ec2-user@ip-172-31-29-7 ~]$ oc get replicaset nginx-replicaset
+NAME               DESIRED   CURRENT   READY   AGE
+nginx-replicaset   3         3         3       79s
+[ec2-user@ip-172-31-29-7 ~]$ oc delete pod nginx-replicaset-abc12
+
+[ec2-user@ip-172-31-29-7 ~]$ oc delete pod nginx-replicaset-dxsdd 
+pod "nginx-replicaset-dxsdd" deleted from k8s-resources namespace
+[ec2-user@ip-172-31-29-7 ~]$ oc get replicaset nginx-replicaset
+NAME               DESIRED   CURRENT   READY   AGE
+nginx-replicaset   3         3         3       3m41s
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-replicaset-lwwfz   1/1     Running   0          41s
+nginx-replicaset-p5sbw   1/1     Running   0          3m59s
+nginx-replicaset-xbz7j   1/1     Running   0          3m59s
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Scale the ReplicaSet
+Scale up to 5 replicas:
+oc scale replicaset nginx-replicaset --replicas=5
+[ec2-user@ip-172-31-29-7 ~]$ oc get replicaset nginx-replicaset
+NAME               DESIRED   CURRENT   READY   AGE
+nginx-replicaset   3         3         3       3m41s
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-replicaset-lwwfz   1/1     Running   0          41s
+nginx-replicaset-p5sbw   1/1     Running   0          3m59s
+nginx-replicaset-xbz7j   1/1     Running   0          3m59s
+[ec2-user@ip-172-31-29-7 ~]$ oc scale replicaset nginx-replicaset --replicas=5
+replicaset.apps/nginx-replicaset scaled
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-replicaset-gnsfw   1/1     Running   0          9s
+nginx-replicaset-lwwfz   1/1     Running   0          2m22s
+nginx-replicaset-n6hgz   1/1     Running   0          9s
+nginx-replicaset-p5sbw   1/1     Running   0          5m40s
+nginx-replicaset-xbz7j   1/1     Running   0          5m40s
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+oc scale replicaset nginx-replicaset --replicas=3
+[ec2-user@ip-172-31-29-7 ~]$ oc scale replicaset nginx-replicaset --replicas=3
+replicaset.apps/nginx-replicaset scaled
+[ec2-user@ip-172-31-29-7 ~]$ oc get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-replicaset-lwwfz   1/1     Running   0          3m12s
+nginx-replicaset-p5sbw   1/1     Running   0          6m30s
+nginx-replicaset-xbz7j   1/1     Running   0          6m30s
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Clean Up the ReplicaSet
+Delete the ReplicaSet before moving on:
+
+oc delete replicaset nginx-replicaset
+
+[ec2-user@ip-172-31-29-7 ~]$ oc get replicaset nginx-replicaset
+NAME               DESIRED   CURRENT   READY   AGE
+nginx-replicaset   3         3         3       8m19s
+[ec2-user@ip-172-31-29-7 ~]$ oc delete replicaset nginx-replicaset
+replicaset.apps "nginx-replicaset" deleted from k8s-resources namespace
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+
+Deployments
+
+Create a file called deployment.yaml with the following contents:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+    tier: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+      tier: web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: nginx
+        tier: web
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+oc apply -f resource/deployment.yaml
+
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/deployment.yaml
+deployment.apps/nginx-deployment created
+[ec2-user@ip-172-31-29-7 ~]$ 
+oc get deployment,replicaset,pods
+
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/deployment.yaml
+deployment.apps/nginx-deployment created
+[ec2-user@ip-172-31-29-7 ~]$ oc get deployment,replicaset,pods
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/nginx-deployment   3/3     3            3           50s
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/nginx-deployment-579567d5cf   3         3         3       50s
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+pod/nginx-deployment-579567d5cf-g8lzg   1/1     Running   0          50s
+pod/nginx-deployment-579567d5cf-gcb9f   1/1     Running   0          50s
+pod/nginx-deployment-579567d5cf-gwq8f   1/1     Running   0          50s
+[ec2-user@ip-172-31-29-7 ~]$ 
+oc set image deployment/nginx-deployment nginx=nginx:1.27
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/deployment.yaml
+deployment.apps/nginx-deployment created
+[ec2-user@ip-172-31-29-7 ~]$ oc get deployment,replicaset,pods
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/nginx-deployment   3/3     3            3           50s
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/nginx-deployment-579567d5cf   3         3         3       50s
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+pod/nginx-deployment-579567d5cf-g8lzg   1/1     Running   0          50s
+pod/nginx-deployment-579567d5cf-gcb9f   1/1     Running   0          50s
+pod/nginx-deployment-579567d5cf-gwq8f   1/1     Running   0          50s
+[ec2-user@ip-172-31-29-7 ~]$ oc set image deployment/nginx-deployment nginx=nginx:1.27
+deployment.apps/nginx-deployment image updated
+[ec2-user@ip-172-31-29-7 ~]$ oc rollout status deployment/nginx-deployment
+deployment "nginx-deployment" successfully rolled out
+[ec2-user@ip-172-31-29-7 ~]$ oc get replicasets
+NAME                          DESIRED   CURRENT   READY   AGE
+nginx-deployment-547b5978d9   3         3         3       34s
+nginx-deployment-579567d5cf   0         0         0       4m50s
+[ec2-user@ip-172-31-29-7 ~]$ oc rollout history deployment/nginx-deployment
+deployment.apps/nginx-deployment 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+Services
+
+Create a Service
+Create a file called service.yaml with the following contents:
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+    tier: web
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  type: ClusterIP
+
+
+oc apply -f resource/service.yaml
+
+
+[ec2-user@ip-172-31-29-7 ~]$ oc apply -f resource/service.yaml
+service/nginx-service created
+[ec2-user@ip-172-31-29-7 ~]$ oc get service nginx-service
+NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+nginx-service   ClusterIP   172.30.147.98   <none>        80/TCP    16s
+[ec2-user@ip-172-31-29-7 ~]$ oc describe service nginx-service
+Name:                     nginx-service
+Namespace:                k8s-resources
+Labels:                   <none>
+Annotations:              <none>
+Selector:                 app=nginx,tier=web
+Type:                     ClusterIP
+IP Family Policy:         SingleStack
+IP Families:              IPv4
+IP:                       172.30.147.98
+IPs:                      172.30.147.98
+Port:                     <unset>  80/TCP
+TargetPort:               80/TCP
+Endpoints:                10.129.0.52:80,10.129.0.54:80,10.129.0.53:80
+Session Affinity:         None
+Internal Traffic Policy:  Cluster
+Events:                   <none>
+[ec2-user@ip-172-31-29-7 ~]$ oc run test-dns --image=busybox --rm -it --restart=Never -- wget -qO- http://nginx-service.k8s-resources.svc.cluster.local
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+pod "test-dns" deleted from k8s-resources namespace
+[ec2-user@ip-172-31-29-7 ~]$ 
+Route (external URL)
+  └── Service (stable IP + DNS + load balancing)
+        └── Deployment (rolling updates + rollback)
+              └── ReplicaSet (desired replica count + self-healing)
+                    └── Pods (running containers)
+
+[ec2-user@ip-172-31-29-7 ~]$ oc get all
+Warning: apps.openshift.io/v1 DeploymentConfig is deprecated in v4.14+, unavailable in v4.10000+
+NAME                                    READY   STATUS    RESTARTS   AGE
+pod/nginx-deployment-547b5978d9-2mmzs   1/1     Running   0          5m26s
+pod/nginx-deployment-547b5978d9-574vh   1/1     Running   0          5m21s
+pod/nginx-deployment-547b5978d9-btzpj   1/1     Running   0          5m20s
+
+NAME                    TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+service/nginx-service   ClusterIP   172.30.147.98   <none>        80/TCP    2m33s
+
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/nginx-deployment   3/3     3            3           9m42s
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/nginx-deployment-547b5978d9   3         3         3       5m26s
+replicaset.apps/nginx-deployment-579567d5cf   0         0         0       9m42s
+
+NAME                                     HOST/PORT                                              PATH   SERVICES        PORT   TERMINATION   WILDCARD
+route.route.openshift.io/nginx-service   nginx-service-k8s-resources.apps.student8.labfun.org          nginx-service   80                   None
+[ec2-user@ip-172-31-29-7 ~]$ 
+
+
+Final Self-Healing Test
+Delete one of the Pods and verify the system heals itself end-to-end:
+
+oc delete $(oc get pods -o name | head -1)
+Watch the Pods:
+
+oc get pods
+
+
+
+----
+You have built and explored the full Kubernetes resource hierarchy from the ground up:
+
+Pods are the atomic unit — but they have no self-healing.
+ReplicaSets add self-healing and scaling by continuously reconciling desired vs actual state.
+Deployments manage ReplicaSets to provide rolling updates and instant rollbacks.
+Services decouple networking from the Pod lifecycle with stable IPs, DNS names, and load balancing.
+
+oc apply -f resource/affinity-preferred.yaml
+
+
+
+
+
+

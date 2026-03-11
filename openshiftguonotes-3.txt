@@ -1,0 +1,147 @@
+[ec2-user@ip-172-31-29-7 ~]$ openshift-install create manifests --dir=$HOME/ocp-install
+INFO Credentials loaded from the "default" profile in file "/home/ec2-user/.aws/credentials" 
+INFO Credentials loaded from the AWS config using "SharedConfigCredentials: /home/ec2-user/.aws/credentials" provider 
+INFO Consuming Install Config from target directory 
+INFO Successfully populated MCS CA cert information: root-ca 2036-03-06T17:59:13Z 2026-03-09T17:59:13Z 
+INFO Successfully populated MCS TLS cert information: root-ca 2036-03-06T17:59:13Z 2026-03-09T17:59:13Z 
+INFO Adding clusters...                           
+INFO Manifests created in: /home/ec2-user/ocp-install/cluster-api, /home/ec2-user/ocp-install/manifests and /home/ec2-user/ocp-install/openshift 
+[ec2-user@ip-172-31-29-7 ~]$ code ~/ocp-install/manifests/cluster-ingress-02-config.yml
+[ec2-user@ip-172-31-29-7 ~]$ openshift-install create cluster --dir=$HOME/ocp-install --log-level=info
+INFO Consuming Worker Machines from target directory 
+INFO Consuming OpenShift Install (Manifests) from target directory 
+INFO Consuming Openshift Manifests from target directory 
+INFO Consuming Common Manifests from target directory 
+INFO Consuming Master Machines from target directory 
+INFO Credentials loaded from the "default" profile in file "/home/ec2-user/.aws/credentials" 
+INFO Credentials loaded from the AWS config using "SharedConfigCredentials: /home/ec2-user/.aws/credentials" provider 
+INFO Creating infrastructure resources...         
+INFO Reconciling IAM roles for control-plane and compute nodes 
+INFO Creating IAM role for master                 
+INFO Creating IAM role for worker                 
+INFO Started local control plane with envtest     
+INFO Stored kubeconfig for envtest in: /home/ec2-user/ocp-install/.clusterapi_output/envtest.kubeconfig 
+=====
+
+[ec2-user@ip-172-31-29-7 ~]$ ssh-keygen -t ed25519 -N '' -f ${HOME}/.ssh/ocp4-aws-key
+Generating public/private ed25519 key pair.
+/home/ec2-user/.ssh/ocp4-aws-key already exists.
+Overwrite (y/n)? y                          
+Your identification has been saved in /home/ec2-user/.ssh/ocp4-aws-key
+Your public key has been saved in /home/ec2-user/.ssh/ocp4-aws-key.pub
+The key fingerprint is:
+SHA256:tlmmt2x2LE+sl+krQeLXthhXIJdlUPI8j1cJ0GX4P2U ec2-user@ip-172-31-29-7.us-west-1.compute.internal
+The key's randomart image is:
++--[ED25519 256]--+
+|           .=**o |
+|          . +Bo .|
+|           o .=..|
+|        . .   .=E|
+|       .Soo. ...=|
+|       ..*+.+  o.|
+|        +..Bo+  .|
+|         o*+B    |
+|         o+B+.   |
++----[SHA256]-----+
+[ec2-user@ip-172-31-29-7 ~]$ aws sts get-caller-identity
+{
+    "UserId": "AIDAYXTUFRNVIKZOT4PXN",
+    "Account": "600465312618",
+    "Arn": "arn:aws:iam::600465312618:user/iis-admin"
+}
+[ec2-user@ip-172-31-29-7 ~]$ oc version --client
+Client Version: 4.21.3
+Kustomize Version: v5.7.1
+[ec2-user@ip-172-31-29-7 ~]$ rm -rf ~/ocp-install && mkdir -p ~/ocp-install
+[ec2-user@ip-172-31-29-7 ~]$ openshift-install version
+openshift-install 4.21.3
+built from commit e973ac44d6883540dc4ac32b3a02ad05565feefa
+release image quay.io/openshift-release-dev/ocp-release@sha256:994bbf87fec04efb0e89ffbc54b2d37590d48e6a804c78cf2cf62dd9bc156793
+release architecture amd64
+[ec2-user@ip-172-31-29-7 ~]$ wget -q -O ~/ocp-install/install-config.yaml https://raw.githubusercontent.com/jruels/openshift-administration/main/labs/openshift-install-updated/install-config.yaml
+[ec2-user@ip-172-31-29-7 ~]$ ls ~/ocp-install/install-config.yaml
+/home/ec2-user/ocp-install/install-config.yaml
+[ec2-user@ip-172-31-29-7 ~]$ sed -i "s/studentN/student8/" ~/ocp-install/install-config.yaml
+[ec2-user@ip-172-31-29-7 ~]$ ^C
+[ec2-user@ip-172-31-29-7 ~]$ sed -i "s/student8/" ~/ocp-install/install-config.yaml
+sed: -e expression #1, char 11: unterminated `s' command
+[ec2-user@ip-172-31-29-7 ~]$ sed -i "s/studentN/student8/" ~/ocp-install/install-config.yaml
+[ec2-user@ip-172-31-29-7 ~]$ sed -i "s|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN6wVcmk2POhLDq5uzuPYEHN1Gey5L14gQqWhdD93CUN ec2-user@ip-172-31-29-7.us-west-1.compute.internal|$(cat ~/.ssh/ocp4-aws-key.pub)|" ~/ocp-install/install-config.yaml
+[ec2-user@ip-172-31-29-7 ~]$ code ~/ocp-install/install-config.yaml
+[ec2-user@ip-172-31-29-7 ~]$ cp ~/ocp-install/install-config.yaml ~/install-config-backup.yaml
+[ec2-user@ip-172-31-29-7 ~]$ openshift-install create manifests --dir=$HOME/ocp-install
+ERROR failed to fetch Master Machines: failed to load asset "Install Config": failed to create install config: invalid "install-config.yaml" file: sshKey: Invalid value: "YOURSSHKEY": ssh: no key found 
+[ec2-user@ip-172-31-29-7 ~]$ openshift-install create manifests --dir=$HOME/ocp-install
+INFO Credentials loaded from the "default" profile in file "/home/ec2-user/.aws/credentials" 
+INFO Credentials loaded from the AWS config using "SharedConfigCredentials: /home/ec2-user/.aws/credentials" provider 
+INFO Consuming Install Config from target directory 
+INFO Successfully populated MCS CA cert information: root-ca 2036-03-06T17:59:13Z 2026-03-09T17:59:13Z 
+INFO Successfully populated MCS TLS cert information: root-ca 2036-03-06T17:59:13Z 2026-03-09T17:59:13Z 
+INFO Adding clusters...                           
+INFO Manifests created in: /home/ec2-user/ocp-install/cluster-api, /home/ec2-user/ocp-install/manifests and /home/ec2-user/ocp-install/openshift 
+[ec2-user@ip-172-31-29-7 ~]$ code ~/ocp-install/manifests/cluster-ingress-02-config.yml
+[ec2-user@ip-172-31-29-7 ~]$ openshift-install create cluster --dir=$HOME/ocp-install --log-level=info
+INFO Consuming Worker Machines from target directory 
+INFO Consuming OpenShift Install (Manifests) from target directory 
+INFO Consuming Openshift Manifests from target directory 
+INFO Consuming Common Manifests from target directory 
+INFO Consuming Master Machines from target directory 
+INFO Credentials loaded from the "default" profile in file "/home/ec2-user/.aws/credentials" 
+INFO Credentials loaded from the AWS config using "SharedConfigCredentials: /home/ec2-user/.aws/credentials" provider 
+INFO Creating infrastructure resources...         
+INFO Reconciling IAM roles for control-plane and compute nodes 
+INFO Creating IAM role for master                 
+INFO Creating IAM role for worker                 
+INFO Started local control plane with envtest     
+INFO Stored kubeconfig for envtest in: /home/ec2-user/ocp-install/.clusterapi_output/envtest.kubeconfig 
+INFO Running process: Cluster API with args [-v=2 --diagnostics-address=0 --health-addr=127.0.0.1:39619 --webhook-port=41857 --webhook-cert-dir=/tmp/envtest-serving-certs-665398313 --kubeconfig=/home/ec2-user/ocp-install/.clusterapi_output/envtest.kubeconfig] 
+INFO Running process: aws infrastructure provider with args [-v=4 --diagnostics-address=0 --health-addr=127.0.0.1:36951 --webhook-port=42071 --webhook-cert-dir=/tmp/envtest-serving-certs-924795251 --feature-gates=BootstrapFormatIgnition=true,ExternalResourceGC=true,TagUnmanagedNetworkResources=false,EKS=false,MachinePool=false --kubeconfig=/home/ec2-user/ocp-install/.clusterapi_output/envtest.kubeconfig] 
+INFO Creating infra manifests...                  
+INFO Created manifest *v1.Namespace, namespace= name=openshift-cluster-api-guests 
+INFO Created manifest *v1beta2.AWSClusterControllerIdentity, namespace= name=default 
+I0309 18:02:27.850805   72614 warning_handler.go:65] "cluster.x-k8s.io/v1beta1 Cluster is deprecated; use cluster.x-k8s.io/v1beta2 Cluster" logger="KubeAPIWarningLogger"
+INFO Created manifest *v1beta1.Cluster, namespace=openshift-cluster-api-guests name=student8-vlrrt 
+INFO Created manifest *v1beta2.AWSCluster, namespace=openshift-cluster-api-guests name=student8-vlrrt 
+INFO Done creating infra manifests                
+INFO Creating kubeconfig entry for capi cluster student8-vlrrt 
+INFO Waiting up to 15m0s (until 6:17PM UTC) for network infrastructure to become ready... 
+INFO Network infrastructure is ready              
+INFO Creating Route53 records for control plane load balancer 
+INFO Created private Hosted Zone                  
+INFO Created manifest *v1beta2.AWSMachine, namespace=openshift-cluster-api-guests name=student8-vlrrt-bootstrap 
+INFO Created manifest *v1beta2.AWSMachine, namespace=openshift-cluster-api-guests name=student8-vlrrt-master-0 
+I0309 18:08:30.093491   72614 warning_handler.go:65] "cluster.x-k8s.io/v1beta1 Machine is deprecated; use cluster.x-k8s.io/v1beta2 Machine" logger="KubeAPIWarningLogger"
+INFO Created manifest *v1beta1.Machine, namespace=openshift-cluster-api-guests name=student8-vlrrt-bootstrap 
+INFO Created manifest *v1beta1.Machine, namespace=openshift-cluster-api-guests name=student8-vlrrt-master-0 
+INFO Created manifest *v1.Secret, namespace=openshift-cluster-api-guests name=student8-vlrrt-bootstrap 
+INFO Created manifest *v1.Secret, namespace=openshift-cluster-api-guests name=student8-vlrrt-master 
+INFO Created manifest *v1.Secret, namespace=openshift-cluster-api-guests name=student8-vlrrt-worker 
+INFO Waiting up to 15m0s (until 6:23PM UTC) for machines [student8-vlrrt-bootstrap student8-vlrrt-master-0] to provision... 
+INFO Control-plane machines are ready             
+INFO Cluster API resources have been created. Waiting for cluster to become ready... 
+INFO Consuming Cluster API Machine Manifests from target directory 
+INFO Consuming Cluster API Manifests from target directory 
+INFO Waiting up to 20m0s (until 6:29PM UTC) for the Kubernetes API at https://api.student8.labfun.org:6443... 
+INFO API v1.34.2 up                               
+INFO Waiting up to 45m0s (until 6:57PM UTC) for bootstrapping to complete... 
+E0309 18:25:28.454026   72614 reflector.go:205] "Failed to watch" err="Get \"https://api.student8.labfun.org:6443/api/v1/namespaces/kube-system/configmaps?allowWatchBookmarks=true&fieldSelector=metadata.name%3Dbootstrap&resourceVersion=14986&timeoutSeconds=417&watch=true\": context canceled" logger="UnhandledError" reflector="k8s.io/client-go/tools/watch/informerwatcher.go:162" type="*v1.ConfigMap"
+INFO Waiting for the bootstrap etcd member to be removed... 
+INFO Bootstrap etcd member has been removed       
+INFO Destroying the bootstrap resources...        
+INFO Waiting up to 5m0s for bootstrap machine deletion openshift-cluster-api-guests/student8-vlrrt-bootstrap... 
+INFO Shutting down local Cluster API controllers... 
+INFO Stopped controller: Cluster API              
+INFO Stopped controller: aws infrastructure provider 
+INFO Shutting down local Cluster API control plane... 
+INFO Local Cluster API system has completed operations 
+INFO Finished destroying bootstrap resources      
+INFO Waiting up to 40m0s (until 7:07PM UTC) for the cluster at https://api.student8.labfun.org:6443 to initialize... 
+INFO Waiting up to 30m0s (until 7:12PM UTC) to ensure each cluster operator has finished progressing... 
+INFO All cluster operators have completed progressing 
+INFO Checking to see if there is a route at openshift-console/console... 
+INFO Install complete!                            
+INFO To access the cluster as the system:admin user when using 'oc', run 
+INFO     export KUBECONFIG=/home/ec2-user/ocp-install/auth/kubeconfig 
+INFO Access the OpenShift web-console here: https://console-openshift-console.apps.student8.labfun.org 
+INFO Login to the console with user: "kubeadmin", and password: "KRR88-rJ3WW-3s5DP-2Gmzo" 
+INFO Time elapsed: 40m11s 

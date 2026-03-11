@@ -1,0 +1,389 @@
+[ec2-user@ip-172-31-29-7 auth]$ oc new-project microservices
+Now using project "microservices" on server "https://api.student8.labfun.org:6443".
+
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    oc new-app rails-postgresql-example
+
+to build a new example application in Ruby. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=registry.k8s.io/e2e-test-images/agnhost:2.43 -- /agnhost serve-hostname
+
+[ec2-user@ip-172-31-29-7 auth]$
+
+[ec2-user@ip-172-31-29-7 auth]$ oc new-app nodeshift/urlshortener-front
+--> Found container image 34ff163 (4 years old) from Docker Hub for "nodeshift/urlshortener-front"
+
+    * An image stream tag will be created as "urlshortener-front:latest" that will track this image
+
+--> Creating resources ...
+    imagestream.image.openshift.io "urlshortener-front" created
+    deployment.apps "urlshortener-front" created
+    service "urlshortener-front" created
+--> Success
+    Application is not exposed. You can expose services to the outside world by executing one or more of the commands below:
+     'oc expose service/urlshortener-front' 
+    Run 'oc status' to view your app.
+[ec2-user@ip-172-31-29-7 auth]$ 
+[ec2-user@ip-172-31-29-7 auth]$ oc expose svc/urlshortener-front --port=8080
+route.route.openshift.io/urlshortener-front exposed
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+[ec2-user@ip-172-31-29-7 auth]$ oc new-app nodeshift/urlshortener-front
+--> Found container image 34ff163 (4 years old) from Docker Hub for "nodeshift/urlshortener-front"
+
+    * An image stream tag will be created as "urlshortener-front:latest" that will track this image
+
+--> Creating resources ...
+    imagestream.image.openshift.io "urlshortener-front" created
+    deployment.apps "urlshortener-front" created
+    service "urlshortener-front" created
+--> Success
+    Application is not exposed. You can expose services to the outside world by executing one or more of the commands below:
+     'oc expose service/urlshortener-front' 
+    Run 'oc status' to view your app.
+[ec2-user@ip-172-31-29-7 auth]$ oc expose svc/urlshortener-front --port=8080
+route.route.openshift.io/urlshortener-front exposed
+[ec2-user@ip-172-31-29-7 auth]$ oc new-app registry.access.redhat.com/ubi9/nodejs-20~https://github.com/nodeshift-blog-examples/urlshortener --context-dir=back
+--> Found container image 267095d (15 hours old) from registry.access.redhat.com for "registry.access.redhat.com/ubi9/nodejs-20"
+
+    Node.js 20 
+    ---------- 
+    Node.js 20 available as container is a base platform for building and running various Node.js 20 applications and frameworks. Node.js is a platform built on Chrome's JavaScript runtime for easily building fast, scalable network applications. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient, perfect for data-intensive real-time applications that run across distributed devices.
+
+    Tags: builder, nodejs, nodejs20
+
+    * An image stream tag will be created as "nodejs-20:latest" that will track the source image
+    * A source build using source code from https://github.com/nodeshift-blog-examples/urlshortener will be created
+      * The resulting image will be pushed to image stream tag "urlshortener:latest"
+      * Every time "nodejs-20:latest" changes a new build will be triggered
+
+--> Creating resources ...
+    imagestream.image.openshift.io "nodejs-20" created
+    imagestream.image.openshift.io "urlshortener" created
+    buildconfig.build.openshift.io "urlshortener" created
+    deployment.apps "urlshortener" created
+    service "urlshortener" created
+--> Success
+    Build scheduled, use 'oc logs -f buildconfig/urlshortener' to track its progress.
+    Application is not exposed. You can expose services to the outside world by executing one or more of the commands below:
+     'oc expose service/urlshortener' 
+    Run 'oc status' to view your app.
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+
+[ec2-user@ip-172-31-29-7 auth]$ oc logs -f buildconfig/urlshortener
+Cloning "https://github.com/nodeshift-blog-examples/urlshortener" ...
+        Commit: 008d70d2f7c7fd89fe18128c2f569959c554004a (chore: change references of joellord to nodeshift or nodeshift-blog-examples (..)
+        Author: Lucas Holmquist <lholmqui@redhat.com>
+        Date:   Mon Sep 27 11:32:09 2021 -0400
+time="2026-03-09T19:40:24Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0309 19:40:24.193906       1 defaults.go:112] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull registry.access.redhat.com/ubi9/nodejs-20@sha256:631ee34c98ffb95456cb0f35dd3b8beb5c1f16a2875f9c02d1ff28bf98a9f292...
+Getting image source signatures
+Copying blob sha256:a9078b81a8be2f84d0b5eb87d37e66ad55a9297995cf62187701140e3c2b8051
+Copying blob sha256:56b2ec53eb90753f4259bc1fd55c9b03d2aeb15f32351977d3513cdfc735b78c
+Copying blob sha256:f3a0a6a8ea4545905d33eb87655162747fd714d34cf25f3e50a63f1c05579a59
+Copying config sha256:267095d278d3ad108c9d2030ad8afa163bdce0fc15abc16d15d55f862cdd9e35
+Writing manifest to image destination
+Generating dockerfile with builder image registry.access.redhat.com/ubi9/nodejs-20@sha256:631ee34c98ffb95456cb0f35dd3b8beb5c1f16a2875f9c02d1ff28bf98a9f292
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 1/9: FROM registry.access.redhat.com/ubi9/nodejs-20@sha256:631ee34c98ffb95456cb0f35dd3b8beb5c1f16a2875f9c02d1ff28bf98a9f292
+STEP 2/9: LABEL "io.openshift.build.commit.author"="Lucas Holmquist <lholmqui@redhat.com>"       "io.openshift.build.commit.date"="Mon Sep 27 11:32:09 2021 -0400"       "io.openshift.build.commit.ref"="main"       "io.openshift.build.commit.message"="chore: change references of joellord to nodeshift or nodeshift-blog-examples (.."       "io.openshift.build.source-context-dir"="back"       "io.openshift.build.image"="registry.access.redhat.com/ubi9/nodejs-20@sha256:631ee34c98ffb95456cb0f35dd3b8beb5c1f16a2875f9c02d1ff28bf98a9f292"       "io.openshift.build.commit.id"="008d70d2f7c7fd89fe18128c2f569959c554004a"       "io.openshift.build.source-location"="https://github.com/nodeshift-blog-examples/urlshortener"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="urlshortener-1"     OPENSHIFT_BUILD_NAMESPACE="microservices"     OPENSHIFT_BUILD_SOURCE="https://github.com/nodeshift-blog-examples/urlshortener"     OPENSHIFT_BUILD_COMMIT="008d70d2f7c7fd89fe18128c2f569959c554004a"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+npm warn old lockfile
+npm warn old lockfile The package-lock.json file was created with an old version of npm,
+npm warn old lockfile so supplemental metadata must be fetched from the registry.
+npm warn old lockfile
+npm warn old lockfile This is a one-time fix-up, please be patient...
+npm warn old lockfile
+npm warn deprecated transformers@2.1.0: Deprecated, use jstransformer
+npm warn deprecated constantinople@3.0.2: Please update to at least constantinople 3.1.1
+npm warn deprecated jade@1.11.0: Jade has been renamed to pug, please install the latest version of pug instead of jade
+
+added 118 packages, and audited 119 packages in 3s
+
+18 vulnerabilities (7 low, 1 moderate, 6 high, 4 critical)
+
+
+-----
+
+
+
+    Run 'oc status' to view your app.
+[ec2-user@ip-172-31-29-7 auth]$ oc logs -f buildconfig/urlshortener
+Cloning "https://github.com/nodeshift-blog-examples/urlshortener" ...
+        Commit: 008d70d2f7c7fd89fe18128c2f569959c554004a (chore: change references of joellord to nodeshift or nodeshift-blog-examples (..)
+        Author: Lucas Holmquist <lholmqui@redhat.com>
+        Date:   Mon Sep 27 11:32:09 2021 -0400
+time="2026-03-09T19:40:24Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0309 19:40:24.193906       1 defaults.go:112] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull registry.access.redhat.com/ubi9/nodejs-20@sha256:631ee34c98ffb95456cb0f35dd3b8beb5c1f16a2875f9c02d1ff28bf98a9f292...
+Getting image source signatures
+Copying blob sha256:a9078b81a8be2f84d0b5eb87d37e66ad55a9297995cf62187701140e3c2b8051
+Copying blob sha256:56b2ec53eb90753f4259bc1fd55c9b03d2aeb15f32351977d3513cdfc735b78c
+Copying blob sha256:f3a0a6a8ea4545905d33eb87655162747fd714d34cf25f3e50a63f1c05579a59
+Copying config sha256:267095d278d3ad108c9d2030ad8afa163bdce0fc15abc16d15d55f862cdd9e35
+Writing manifest to image destination
+Generating dockerfile with builder image registry.access.redhat.com/ubi9/nodejs-20@sha256:631ee34c98ffb95456cb0f35dd3b8beb5c1f16a2875f9c02d1ff28bf98a9f292
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 1/9: FROM registry.access.redhat.com/ubi9/nodejs-20@sha256:631ee34c98ffb95456cb0f35dd3b8beb5c1f16a2875f9c02d1ff28bf98a9f292
+STEP 2/9: LABEL "io.openshift.build.commit.author"="Lucas Holmquist <lholmqui@redhat.com>"       "io.openshift.build.commit.date"="Mon Sep 27 11:32:09 2021 -0400"       "io.openshift.build.commit.ref"="main"       "io.openshift.build.commit.message"="chore: change references of joellord to nodeshift or nodeshift-blog-examples (.."       "io.openshift.build.source-context-dir"="back"       "io.openshift.build.image"="registry.access.redhat.com/ubi9/nodejs-20@sha256:631ee34c98ffb95456cb0f35dd3b8beb5c1f16a2875f9c02d1ff28bf98a9f292"       "io.openshift.build.commit.id"="008d70d2f7c7fd89fe18128c2f569959c554004a"       "io.openshift.build.source-location"="https://github.com/nodeshift-blog-examples/urlshortener"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="urlshortener-1"     OPENSHIFT_BUILD_NAMESPACE="microservices"     OPENSHIFT_BUILD_SOURCE="https://github.com/nodeshift-blog-examples/urlshortener"     OPENSHIFT_BUILD_COMMIT="008d70d2f7c7fd89fe18128c2f569959c554004a"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+npm warn old lockfile
+npm warn old lockfile The package-lock.json file was created with an old version of npm,
+npm warn old lockfile so supplemental metadata must be fetched from the registry.
+npm warn old lockfile
+npm warn old lockfile This is a one-time fix-up, please be patient...
+npm warn old lockfile
+npm warn deprecated transformers@2.1.0: Deprecated, use jstransformer
+npm warn deprecated constantinople@3.0.2: Please update to at least constantinople 3.1.1
+npm warn deprecated jade@1.11.0: Jade has been renamed to pug, please install the latest version of pug instead of jade
+
+added 118 packages, and audited 119 packages in 3s
+
+18 vulnerabilities (7 low, 1 moderate, 6 high, 4 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+---> Building in production mode
+---> Pruning the development dependencies
+
+up to date, audited 119 packages in 556ms
+
+18 vulnerabilities (7 low, 1 moderate, 6 high, 4 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+mountpoint: undefined: No such file or directory
+---> Cleaning the undefined/npm-*
+/opt/app-root/src/.npm is not a mountpoint
+---> Cleaning the npm cache /opt/app-root/src/.npm
+STEP 9/9: CMD /usr/libexec/s2i/run
+COMMIT temp.builder.openshift.io/microservices/urlshortener-1:b163fe4e
+Getting image source signatures
+Copying blob sha256:6f79bbfebf48364efd0ee3ed27d355380a7ebd15516440724189b73bf89a898d
+Copying blob sha256:2e13e6e57bf250c2e818300c9fe7e92d505d2afb34eaecfb37af42f4b13e05b1
+Copying blob sha256:56e68fb56eac4747ebcc6ed2b089134cb710887d0b45f6a3ff25c26548680d8a
+Copying blob sha256:b70ff308a2e7a941b5214f3033917d6241cc1efe4c997e9d5008e6ca50770f6d
+Copying config sha256:b371286e3eb2316acb379a20058c97a0b63542a69321b6ac0b4e83cfc8e6c27f
+Writing manifest to image destination
+--> b371286e3eb2
+Successfully tagged temp.builder.openshift.io/microservices/urlshortener-1:b163fe4e
+b371286e3eb2316acb379a20058c97a0b63542a69321b6ac0b4e83cfc8e6c27f
+
+Pushing image image-registry.openshift-image-registry.svc:5000/microservices/urlshortener:latest ...
+Getting image source signatures
+Copying blob sha256:b70ff308a2e7a941b5214f3033917d6241cc1efe4c997e9d5008e6ca50770f6d
+Copying blob sha256:56b2ec53eb90753f4259bc1fd55c9b03d2aeb15f32351977d3513cdfc735b78c
+Copying blob sha256:f3a0a6a8ea4545905d33eb87655162747fd714d34cf25f3e50a63f1c05579a59
+Copying blob sha256:a9078b81a8be2f84d0b5eb87d37e66ad55a9297995cf62187701140e3c2b8051
+Copying config sha256:b371286e3eb2316acb379a20058c97a0b63542a69321b6ac0b4e83cfc8e6c27f
+Writing manifest to image destination
+Successfully pushed image-registry.openshift-image-registry.svc:5000/microservices/urlshortener@sha256:603225d51b7334ac86ea4da684e260f8fbfdfeea8aef08db000041e21cbff963
+Push successful
+[ec2-user@ip-172-31-29-7 auth]$ oc set env deployment/urlshortener PORT=8080
+deployment.apps/urlshortener updated
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+
+
+
+oc expose svc/urlshortener
+[ec2-user@ip-172-31-29-7 auth]$ oc expose svc/urlshortener
+route.route.openshift.io/urlshortener exposed
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+[ec2-user@ip-172-31-29-7 auth]$ oc get route urlshortener
+NAME           HOST/PORT                                             PATH   SERVICES       PORT       TERMINATION   WILDCARD
+urlshortener   urlshortener-microservices.apps.student8.labfun.org          urlshortener   8080-tcp                 None
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+curl -s http://$(oc get route urlshortener -o jsonpath='{.spec.host}')
+
+curl -s http://urlshortener-microservices.apps.student8.labfun.org 
+
+
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+---> Building in production mode
+---> Pruning the development dependencies
+
+up to date, audited 119 packages in 556ms
+
+18 vulnerabilities (7 low, 1 moderate, 6 high, 4 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+mountpoint: undefined: No such file or directory
+---> Cleaning the undefined/npm-*
+/opt/app-root/src/.npm is not a mountpoint
+---> Cleaning the npm cache /opt/app-root/src/.npm
+STEP 9/9: CMD /usr/libexec/s2i/run
+COMMIT temp.builder.openshift.io/microservices/urlshortener-1:b163fe4e
+Getting image source signatures
+Copying blob sha256:6f79bbfebf48364efd0ee3ed27d355380a7ebd15516440724189b73bf89a898d
+Copying blob sha256:2e13e6e57bf250c2e818300c9fe7e92d505d2afb34eaecfb37af42f4b13e05b1
+Copying blob sha256:56e68fb56eac4747ebcc6ed2b089134cb710887d0b45f6a3ff25c26548680d8a
+Copying blob sha256:b70ff308a2e7a941b5214f3033917d6241cc1efe4c997e9d5008e6ca50770f6d
+Copying config sha256:b371286e3eb2316acb379a20058c97a0b63542a69321b6ac0b4e83cfc8e6c27f
+Writing manifest to image destination
+--> b371286e3eb2
+Successfully tagged temp.builder.openshift.io/microservices/urlshortener-1:b163fe4e
+b371286e3eb2316acb379a20058c97a0b63542a69321b6ac0b4e83cfc8e6c27f
+
+Pushing image image-registry.openshift-image-registry.svc:5000/microservices/urlshortener:latest ...
+Getting image source signatures
+Copying blob sha256:b70ff308a2e7a941b5214f3033917d6241cc1efe4c997e9d5008e6ca50770f6d
+Copying blob sha256:56b2ec53eb90753f4259bc1fd55c9b03d2aeb15f32351977d3513cdfc735b78c
+Copying blob sha256:f3a0a6a8ea4545905d33eb87655162747fd714d34cf25f3e50a63f1c05579a59
+Copying blob sha256:a9078b81a8be2f84d0b5eb87d37e66ad55a9297995cf62187701140e3c2b8051
+Copying config sha256:b371286e3eb2316acb379a20058c97a0b63542a69321b6ac0b4e83cfc8e6c27f
+Writing manifest to image destination
+Successfully pushed image-registry.openshift-image-registry.svc:5000/microservices/urlshortener@sha256:603225d51b7334ac86ea4da684e260f8fbfdfeea8aef08db000041e21cbff963
+Push successful
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+
+curl -s http://$(oc get route urlshortener -o jsonpath='{.spec.host}')
+
+curl -s http://urlshortener-microservices.apps.student8.labfun.org 
+Test the root endpoint:
+
+curl -s http://$(oc get route urlshortener -o jsonpath='{.spec.host}')
+You should see:
+
+{"msg":"Hello"}
+
+[ec2-user@ip-172-31-29-7 auth]$ curl -s http://urlshortener-microservices.apps.student8.labfun.org 
+{"msg":"Hello"}[ec2-user@ip-172-31-29-7 auth]$ 
+
+Test the health endpoint:
+
+curl -s http://$(oc get route urlshortener -o jsonpath='{.spec.host}')/health
+
+curl -s http://urlshortener-microservices.apps.student8.labfun.org/health
+[ec2-user@ip-172-31-29-7 auth]$ curl -s http://urlshortener-microservices.apps.student8.labfun.org/health
+{"server":true,"database":false}[ec2-user@ip-172-31-29-7 auth]$ 
+
+You should see:
+
+{"server":true,"database":false}
+
+-------
+[ec2-user@ip-172-31-29-7 auth]$ oc set probe deployment/urlshortener --liveness --get-url=http://:8080/health --initial-delay-seconds=10 --period-seconds=10
+deployment.apps/urlshortener probes updated
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+oc describe deployment/urlshortener | grep -A5 "Liveness"
+
+[ec2-user@ip-172-31-29-7 auth]$ oc describe deployment/urlshortener | grep -A5 "Liveness"
+    Liveness:   http-get http://:8080/health delay=10s timeout=1s period=10s #success=1 #failure=3
+    Environment:
+      PORT:        8080
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+oc logs deployment/urlshortener --tail=5
+[ec2-user@ip-172-31-29-7 auth]$ oc logs deployment/urlshortener --tail=5
+    at Object.onceWrapper (node:events:639:26)
+    at Socket.emit (node:events:524:28)
+    at emitErrorNT (node:internal/streams/destroy:169:8)
+Database status is false
+GET /health 200 4.037 ms - 32
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+oc set env deployment/urlshortener-front BASE_URL=http://urlshortener-microservices.apps.student8.labfun.org
+
+[ec2-user@ip-172-31-29-7 auth]$ oc set env deployment/urlshortener-front BASE_URL=http://urlshortener-microservices.apps.student8.labfun.org
+deployment.apps/urlshortener-front updated
+[ec2-user@ip-172-31-29-7 auth]$ 
+
+oc get route urlshortener-front -o jsonpath='{.spec.host}'
+
+[ec2-user@ip-172-31-29-7 auth]$ oc get route urlshortener-front -o jsonpath='{.spec.host}'
+urlshortener-front-microservices.apps.student8.labfun.org[ec2-user@ip-172-31-29-7 auth]$ 
+
+oc get all
+
+[ec2-user@ip-172-31-29-7 auth]$ oc set env deployment/urlshortener-front BASE_URL=http://urlshortener-microservices.apps.student8.labfun.org
+deployment.apps/urlshortener-front updated
+[ec2-user@ip-172-31-29-7 auth]$ oc get route urlshortener-front -o jsonpath='{.spec.host}'
+urlshortener-front-microservices.apps.student8.labfun.org[ec2-user@ip-172-31-29-7 auth]$ oc get all
+Warning: apps.openshift.io/v1 DeploymentConfig is deprecated in v4.14+, unavailable in v4.10000+
+NAME                                      READY   STATUS      RESTARTS   AGE
+pod/urlshortener-1-build                  0/1     Completed   0          20m
+pod/urlshortener-75d8c58db7-dg9jj         1/1     Running     0          8m20s
+pod/urlshortener-front-666dbcdd77-bz759   1/1     Running     0          3m42s
+
+NAME                         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)           AGE
+service/urlshortener         ClusterIP   172.30.235.19   <none>        8080/TCP          20m
+service/urlshortener-front   ClusterIP   172.30.49.144   <none>        80/TCP,8080/TCP   23m
+
+NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/urlshortener         1/1     1            1           20m
+deployment.apps/urlshortener-front   1/1     1            1           23m
+
+NAME                                            DESIRED   CURRENT   READY   AGE
+replicaset.apps/urlshortener-6db9cdc9ff         0         0         0       20m
+replicaset.apps/urlshortener-759f6c8b4f         0         0         0       19m
+replicaset.apps/urlshortener-75d8c58db7         1         1         1       8m20s
+replicaset.apps/urlshortener-8598f7584d         0         0         0       15m
+replicaset.apps/urlshortener-front-666dbcdd77   1         1         1       3m42s
+replicaset.apps/urlshortener-front-76bc85fdf9   0         0         0       23m
+replicaset.apps/urlshortener-front-7f8755977    0         0         0       23m
+
+NAME                                          TYPE     FROM   LATEST
+buildconfig.build.openshift.io/urlshortener   Source   Git    1
+
+NAME                                      TYPE     FROM          STATUS     STARTED          DURATION
+build.build.openshift.io/urlshortener-1   Source   Git@008d70d   Complete   20 minutes ago   36s
+
+NAME                                                IMAGE REPOSITORY                                                                    TAGS     UPDATED
+imagestream.image.openshift.io/nodejs-20            image-registry.openshift-image-registry.svc:5000/microservices/nodejs-20            latest   20 minutes ago
+imagestream.image.openshift.io/urlshortener         image-registry.openshift-image-registry.svc:5000/microservices/urlshortener         latest   19 minutes ago
+imagestream.image.openshift.io/urlshortener-front   image-registry.openshift-image-registry.svc:5000/microservices/urlshortener-front   latest   23 minutes ago
+
+NAME                                          HOST/PORT                                                   PATH   SERVICES             PORT       TERMINATION   WILDCARD
+route.route.openshift.io/urlshortener         urlshortener-microservices.apps.student8.labfun.org                urlshortener         8080-tcp                 None
+route.route.openshift.io/urlshortener-front   urlshortener-front-microservices.apps.student8.labfun.org          urlshortener-front   8080                     None
+[ec2-user@ip-172-31-29-7 auth]$ 
